@@ -1,6 +1,15 @@
 # rsnap
 
-Simple bash script to make a hard linked differential backup pulled from remote machines. There is solutions that does this with a lot more features as [rdiff-backup](https://rdiff-backup.net/) or [BackupPC](https://backuppc.github.io/backuppc/). But if you just need a simple solution running in cron, this may be your thing.
+Simple bash script to make a hard linked differential backup pulled from remote machines. Only dependency on the remote is `rsync`. If you want compression and checksumming use `zfs` or `btrfs` file system on the target machine.
+
+This script is intended for low volume backups. Use something more suited if you want to backup massive amount of files. There is solutions that does this with more features as
+
+* [BackupPC](https://backuppc.github.io/backuppc/)
+* [Borg backup](https://www.borgbackup.org/)
+* [rdiff-backup](https://rdiff-backup.net/)
+* [restic](https://restic.net/)
+
+and many more...
 
 ## Backup structure
 
@@ -40,8 +49,6 @@ to this servers /srv/backups. Keep 90 days of snapshots or max 30 snapshots.
 
   rsnap -n 30 -d 90 -p /srv/backups my.domain /var/backups /etc
 ```
-
-
 
 <!---
 vim: set spell spelllang=en:
