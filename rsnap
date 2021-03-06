@@ -9,7 +9,7 @@ function show_help(){
   show_usage
   cat >&2 <<EOF
 
-$(basename $0) creates rsync snapshots of one or more paths on a remote
+$(basename "$0") creates rsync snapshots of one or more paths on a remote
 location. Specify number of snapshots to keep and/or max age in days.
 
 Snapshot name format: 2021-03-06T10:25:45+00:00. A link, latest, point to
@@ -34,7 +34,7 @@ EOF
 
 # Print usage on stderr
 function show_usage() {
-  echo "$(basename $0) [-h] [-v] [-i] [-d DAYS] [-n NUMBER] [-p PATH] [-s SERVER] PATH..." >&2
+  echo "$(basename "$0") [-h] [-v] [-i] [-d DAYS] [-n NUMBER] [-p PATH] [-s SERVER] PATH..." >&2
 }
 
 # Print debug
@@ -46,11 +46,11 @@ function out() {
     3) echo -n "info: " ;;
     *) echo -n "debug: " ;;
   esac
-  echo $2
+  echo "$2"
 }
 
 # Print usage and exit with error code 1 if we don't have any options
-if [[ "$@" = "" ]]; then
+if [[ "$*" = "" ]]; then
   show_usage
   exit 1
 fi
@@ -82,14 +82,14 @@ do
         fi ;;
     i)  IGNORE=1 ;;
     h)  show_help; exit 1 ;;
-    \?) echo $(basename $0) invalid option: -$OPTARG >&2
+    \?) echo "$(basename "$0")" invalid option: -"$OPTARG" >&2
         exit 1
         ;;
   esac
 done
 
 # Arguments after options
-ARGS=${@:$OPTIND}
+ARGS=${*:$OPTIND}
 
 # Print error if any required arguments is missing
 if [[ -z "$DEST_PATH" ]] || [[ -z "$SRC_SERVER" ]] || [[ ${#ARGS} -eq 0 ]]
@@ -107,7 +107,7 @@ fi
 ERROR=0
 
 # Check if we can reach source server on first path
-for (( i=$OPTIND; i<=$#; i++))
+for (( i=OPTIND; i<=$#; i++))
 do
   SOURCE="$SRC_SERVER:${!i}"
 
@@ -131,7 +131,7 @@ mkdir -p "$DEST_BACKUP_PATH"
 
 # Make hard links to a new snapshot, then rsync changes
 # FIXME: This is a workaround due to problems with rsync --link-dest
-for (( i=$OPTIND; i<=$#; i++))
+for (( i=OPTIND; i<=$#; i++))
 do
   out 4 "create destination $DEST_BACKUP_PATH/${!i}/"
   mkdir -p  "$DEST_BACKUP_PATH/${!i}/"
@@ -164,9 +164,9 @@ then
   while IFS= read -r -d $'\0' snapshot
   do
     snapshots+=("$snapshot")
-  done < <(find $DEST_SERVER_PATH/ -mindepth 1 -maxdepth 1 -type d -print0)
+  done < <(find "$DEST_SERVER_PATH/" -mindepth 1 -maxdepth 1 -type d -print0)
   # reverse sort array
-  IFS=$'\n' sorted_snapshots=($(sort -r <<<"${snapshots[*]}")); unset IFS
+  IFS=$'\n' sorted_snapshots=("$(sort -r <<<"${snapshots[*]}")"); unset IFS
   out 4 "number of snapshots ${#sorted_snapshots[*]}, number to keep $KEEP_NUMBER"
   for snapshot in ${sorted_snapshots[*]:KEEP_NUMBER}
   do
@@ -183,7 +183,7 @@ then
   while IFS= read -r -d $'\0' snapshot
   do
     out 2 "removing snapshot $snapshot"
-    rm -rf "$snapshots"
-  done < <(find $DEST_SERVER_PATH/ -mindepth 1 -maxdepth 1 -type d -ctime +$KEEP_DAYS -print0)
+    rm -rf "$snapshot"
+  done < <(find "$DEST_SERVER_PATH/" -mindepth 1 -maxdepth 1 -type d -ctime +"$KEEP_DAYS" -print0)
 fi
 
