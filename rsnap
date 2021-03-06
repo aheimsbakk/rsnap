@@ -1,5 +1,8 @@
 #!/bin/bash
 #vim: set spell spelllang=en:
+#
+# Released under GNU LESSER GENERAL PUBLIC LICENSE v2.1
+# Author: Arnulf Heimsbakk 2021
 
 # Print help on stderr
 function show_help(){
