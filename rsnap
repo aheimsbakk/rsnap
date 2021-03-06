@@ -1,0 +1,186 @@
+#!/bin/bash
+#vim: set spell spelllang=en:
+
+# Print help on stderr
+function show_help(){
+  show_usage
+  cat >&2 <<EOF
+
+$(basename $0) creates rsync snapshots of one or more paths on a remote
+location. Specify number of snapshots to keep and/or max age in days.
+
+Snapshot name format: 2021-03-06T10:25:45+00:00. A link, latest, point to
+the latest snapshot.
+
+  -d DAYS           number of days to keep snapshots
+  -i                ignore missing remote folder or server
+  -n NUMBER         max number of snapshots to keep
+  -p PATH           destination path, autocreated if missing
+  -s SERVER         server to rsync from, user@server may be used
+  -v LEVEL          verbosity level where 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG
+
+Snapshot one or more paths on the remote server.
+
+Example: Make backup of my.domain.com:/var/backups and my.domain.com:/etc
+to this servers /srv/backups. Keep 90 days of snapshots or max 30 snapshots.
+
+  rsnap -n 30 -d 90 -p /srv/backups my.domain /var/backups /etc
+
+EOF
+}
+
+# Print usage on stderr
+function show_usage() {
+  echo "$(basename $0) [-h] [-v] [-i] [-d DAYS] [-n NUMBER] [-p PATH] [-s SERVER] PATH..." >&2
+}
+
+# Print debug
+function out() {
+  [[ $1 -gt $VERBOSITY ]] && return
+  case $1 in
+    1) echo -n "error: " ;;
+    2) echo -n "warn: " ;;
+    3) echo -n "info: " ;;
+    *) echo -n "debug: " ;;
+  esac
+  echo $2
+}
+
+# Print usage and exit with error code 1 if we don't have any options
+if [[ "$@" = "" ]]; then
+  show_usage
+  exit 1
+fi
+
+# Verbosity
+VERBOSITY=1
+
+# Ignore errors
+IGNORE=0
+
+# Keep unlimited copies
+KEEP_NUMBER=0
+
+# Keep for unlimited days
+KEEP_DAYS=0
+
+# Read arguments
+while getopts ":d:n:p:s:v:ih" opt
+do
+  case $opt in
+    d)  KEEP_DAYS="$OPTARG" ;;
+    n)  KEEP_NUMBER="$OPTARG" ;;
+    p)  DEST_PATH="$OPTARG" ;;
+    s)  SRC_SERVER="$OPTARG" ;;
+    v)  VERBOSITY="$OPTARG"
+        if [[ $VERBOSITY -ge 4 ]]
+        then
+          VERBOSE="-v"
+        fi ;;
+    i)  IGNORE=1 ;;
+    h)  show_help; exit 1 ;;
+    \?) echo $(basename $0) invalid option: -$OPTARG >&2
+        exit 1
+        ;;
+  esac
+done
+
+# Arguments after options
+ARGS=${@:$OPTIND}
+
+# Print error if any required arguments is missing
+if [[ -z "$DEST_PATH" ]] || [[ -z "$SRC_SERVER" ]] || [[ ${#ARGS} -eq 0 ]]
+then
+  [[ -z "$DEST_PATH" ]] && out 1 "missing destionation path"
+  [[ -z "$SRC_SERVER" ]] && out 1 "missing remote server"
+  [[ ${#ARGS} -eq 0 ]] && out 1 "missing paths to back up on remote server"
+  echo
+
+  show_usage
+  exit 1
+fi
+
+# Set no errors
+ERROR=0
+
+# Check if we can reach source server on first path
+for (( i=$OPTIND; i<=$#; i++))
+do
+  SOURCE="$SRC_SERVER:${!i}"
+
+  out 4 "checking rsync access to $SOURCE"
+  if ! rsync -q "$SOURCE" > /dev/null 2>&1
+  then
+    out 1 "can not reach $SOURCE"
+    ERROR=1
+  fi
+done
+
+# Exit if path on source does not exit
+[[ "$IGNORE" -eq 0 ]] && [[ "$ERROR" -gt 0 ]] && exit 1
+
+BACKUP_START_TIME="$(date -Is)"
+DEST_SERVER_PATH="$DEST_PATH/${SRC_SERVER/#*@}"
+DEST_BACKUP_PATH="$DEST_SERVER_PATH/$BACKUP_START_TIME"
+
+out 4 "create folder destination folder $DEST_PATH"
+mkdir -p "$DEST_BACKUP_PATH"
+
+# Make hard links to a new snapshot, then rsync changes
+# FIXME: This is a workaround due to problems with rsync --link-dest
+for (( i=$OPTIND; i<=$#; i++))
+do
+  out 4 "create destination $DEST_BACKUP_PATH/${!i}/"
+  mkdir -p  "$DEST_BACKUP_PATH/${!i}/"
+  if [[ -L "$DEST_SERVER_PATH/latest" ]]
+  then
+    out 3 "link $DEST_SERVER_PATH/latest/${!i}/. -> $DEST_BACKUP_PATH/${!i}/"
+    cp -al $VERBOSE "$DEST_SERVER_PATH/latest/${!i}/." "$DEST_BACKUP_PATH/${!i}/"
+  fi
+
+  SOURCE="$SRC_SERVER:${!i}"
+  out 3 "rsync from $SOURCE/ -> $DEST_BACKUP_PATH/${!i}/"
+  rsync -aH $VERBOSE --delete --numeric-ids -i "$SOURCE/" "$DEST_BACKUP_PATH/${!i}/" 2>/dev/null
+done
+
+# Make a softlink to the latest backup
+out 4 "remove softlink to latest backup, $DEST_SERVER_PATH/latest"
+rm -f "$DEST_SERVER_PATH/latest"
+out 3 "create softlink to latest backup, $DEST_SERVER_PATH/latest -> $BACKUP_START_TIME"
+ln -s "$BACKUP_START_TIME" "$DEST_SERVER_PATH/latest"
+
+# Start cleanup routines
+out 4 "check if we need cleanup"
+
+# Remove copies if we have to many
+if [[ $KEEP_NUMBER -gt 0 ]]
+then
+  out 3 "keep $KEEP_NUMBER of snapshots"
+  declare -a snapshots
+  # read snapshots
+  while IFS= read -r -d $'\0' snapshot
+  do
+    snapshots+=("$snapshot")
+  done < <(find $DEST_SERVER_PATH/ -mindepth 1 -maxdepth 1 -type d -print0)
+  # reverse sort array
+  IFS=$'\n' sorted_snapshots=($(sort -r <<<"${snapshots[*]}")); unset IFS
+  out 4 "number of snapshots ${#sorted_snapshots[*]}, number to keep $KEEP_NUMBER"
+  for snapshot in ${sorted_snapshots[*]:KEEP_NUMBER}
+  do
+    out 2 "removing snapshot $snapshot"
+    rm -rf "$snapshot"
+  done
+fi
+
+# Remove snapshots that is to old
+if [[ $KEEP_DAYS -gt 0 ]]
+then
+  out 3 "remove snapshots older than $KEEP_DAYS days"
+
+  while IFS= read -r -d $'\0' snapshot
+  do
+    out 2 "removing snapshot $snapshot"
+    rm -rf "$snapshots"
+  done < <(find $DEST_SERVER_PATH/ -mindepth 1 -maxdepth 1 -type d -ctime +$KEEP_DAYS -print0)
+fi
+
