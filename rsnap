@@ -140,7 +140,7 @@ do
 
   SOURCE="$SRC_SERVER:${!i}"
   out 3 "rsync from $SOURCE/ -> $DEST_BACKUP_PATH/${!i}/"
-  rsync -aH $VERBOSE --delete --numeric-ids -i "$SOURCE/" "$DEST_BACKUP_PATH/${!i}/" 2>/dev/null
+  rsync -a $VERBOSE --delete --numeric-ids "$SOURCE/" "$DEST_BACKUP_PATH/${!i}/" 2>/dev/null
 done
 
 # Make a softlink to the latest backup
