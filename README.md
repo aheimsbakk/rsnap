@@ -13,7 +13,7 @@ and many more...
 
 ## Backup structure
 
-Backups will be stored in destination directory with the structure below. A link `latest` will be created and point to the latest backup at after each run.
+Backups will be stored in destination directory with the structure below. A link `latest` will be created and point to the latest backup after each run.
 
 ```
 .
