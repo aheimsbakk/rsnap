@@ -184,6 +184,6 @@ then
   do
     out 2 "removing snapshot $snapshot"
     rm -rf "$snapshot"
-  done < <(find "$DEST_SERVER_PATH/" -mindepth 1 -maxdepth 1 -type d -ctime +"$KEEP_DAYS" -print0)
+  done < <(find "$DEST_SERVER_PATH/" -mindepth 1 -maxdepth 1 -type d -ctime +"$(( KEEP_DAYS - 1 ))" -print0)
 fi
 
