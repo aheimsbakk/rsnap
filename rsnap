@@ -174,7 +174,7 @@ then
     snapshots+=("$snapshot")
   done < <(find "$DEST_SERVER_PATH/" -mindepth 1 -maxdepth 1 -type d -print0)
   # reverse sort array
-  IFS=$'\n' sorted_snapshots=("$(sort -r <<<"${snapshots[*]}")"); unset IFS
+  IFS=$'\n' sorted_snapshots=($(sort -r <<<"${snapshots[*]}")); unset IFS
   out 4 "number of snapshots ${#sorted_snapshots[*]}, number to keep $KEEP_NUMBER"
   for snapshot in ${sorted_snapshots[*]:KEEP_NUMBER}
   do
