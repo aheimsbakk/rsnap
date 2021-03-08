@@ -156,7 +156,6 @@ do
     ssh $SRC_SERVER -- find "${!i}" -xdev -name "$IGNORE_FILE" -printf '%h\\\n' > $TMP_EXCLUDE_FILE
     sed -E -i "s#^${!i}/(.*)#- \1/#g" $TMP_EXCLUDE_FILE
   fi
-  echo cat $TMP_EXCLUDE_FILE
   rsync -a -x $VERBOSE --numeric-ids --exclude-from="$TMP_EXCLUDE_FILE" --delete-excluded "$SOURCE/" "$DEST_BACKUP_PATH/${!i#/}/" 2>/dev/null
 done
 
