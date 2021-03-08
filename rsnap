@@ -99,11 +99,6 @@ ARGS=${*:$OPTIND}
 # Print error if any required arguments is missing
 if [[ -z "$DEST_PATH" ]] || [[ -z "$SRC_SERVER" ]] || [[ ${#ARGS} -eq 0 ]]
 then
-  [[ -z "$DEST_PATH" ]] && out 1 "missing destionation path"
-  [[ -z "$SRC_SERVER" ]] && out 1 "missing remote server"
-  [[ ${#ARGS} -eq 0 ]] && out 1 "missing paths to back up on remote server"
-  echo
-
   show_usage
   exit 1
 fi
