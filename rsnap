@@ -135,7 +135,7 @@ for (( i=OPTIND; i<=$#; i++))
 do
   out 4 "create destination directory, $DEST_BACKUP_PATH/${!i#/}/"
   mkdir -p  "$DEST_BACKUP_PATH/${!i#/}/"
-  if [[ -L "$DEST_SERVER_PATH/latest" ]]
+  if [[ -d "$DEST_SERVER_PATH/latest/${!i#/}" ]]
   then
     out 3 "link $DEST_SERVER_PATH/latest/${!i#/}/. -> $DEST_BACKUP_PATH/${!i#/}/"
     cp -al $VERBOSE "$DEST_SERVER_PATH/latest/${!i#/}/." "$DEST_BACKUP_PATH/${!i#/}/"
