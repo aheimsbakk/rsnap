@@ -159,9 +159,9 @@ do
   trap "rm -f $TMP_EXCLUDE_FILE" EXIT SIGTERM SIGINT
 
   # Add excludes from options
-  for (( i=0; i < ${#EXCLUDES[*]}; i++))
+  for (( j=0; j < ${#EXCLUDES[*]}; j++))
   do
-    echo "- ${EXCLUDES[i]}" >> $TMP_EXCLUDE_FILE
+    echo "- ${EXCLUDES[j]}" >> $TMP_EXCLUDE_FILE
   done
 
   if [[ ! -z "$IGNORE_FILE" ]]
