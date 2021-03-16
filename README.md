@@ -29,7 +29,7 @@ Backups will be stored in destination directory with the structure below. A link
 ## How to use
 
 ```
-rsnap [-h] [-v] [-I] [-i FILENAME] [-d DAYS] [-n NUMBER] [-p PATH] [-s SERVER] PATH...
+rsnap [-h] [-v] [-I] [-i FILENAME] [-e PATTERN] [-d DAYS] [-n NUMBER] [-p PATH] [-s SERVER] PATH...
 
 rsnap creates rsync snapshots of one or more paths on a remote
 location. Specify number of snapshots to keep and/or max age in days.
@@ -38,6 +38,7 @@ Snapshot name format: 2021-03-06T10:25:45+00:00. A link, latest, point to
 the latest snapshot.
 
   -d DAYS           number of days to keep snapshots
+  -e PATTERN        exclude files/paths, can be added multiple times
   -i FILENAME       if file exists in directory, ignore directory
   -I                ignore missing remote directory or server
   -n NUMBER         max number of snapshots to keep
@@ -49,8 +50,14 @@ Snapshot one or more paths on the remote server.
 
 Example: Make backup of my.domain.com:/var/backups and my.domain.com:/etc
 to this servers /srv/backups. Keep 90 days of snapshots or max 30 snapshots.
+Skip folders including .rsnap-skip and and ignore shadow files.
 
-  rsnap -n 30 -d 90 -p /srv/backups my.domain /var/backups /etc
+  rsnap -n 30 -d 90        \
+        -i .rsnap-skip     \
+        -e shadow*         \
+        -p /srv/backups    \
+        -s my.domain       \
+        /var/backups /etc
 ```
 
 <!---
